@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 
 class ArenaAllocator {
     private ByteBuffer buffer;
+    private int lastOffset = 0;
 
     public ArenaAllocator(int size) {
         buffer = ByteBuffer.allocate(size);
@@ -13,7 +14,7 @@ class ArenaAllocator {
         if (buffer.remaining() < size) {
             throw new OutOfMemoryError("Arena out of memory");
         }
-        int currentOffset = buffer.position();
+        int currentOffset = lastOffset;
         buffer.position(currentOffset + size);
         return currentOffset;
     }
