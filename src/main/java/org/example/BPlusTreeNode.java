@@ -1,8 +1,9 @@
 package org.example;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
-public class BPlusTreeNode {
+class BPlusTreeNode {
     private static final int INT_SIZE = Integer.BYTES;
     private static final int BOOLEAN_SIZE = Byte.BYTES;
 
@@ -10,6 +11,7 @@ public class BPlusTreeNode {
     private ArenaAllocator allocator;
     private int offset;
 
+    // Constructor for new nodes
     public BPlusTreeNode(int order, ArenaAllocator allocator) {
         this.order = order;
         this.allocator = allocator;
@@ -17,8 +19,15 @@ public class BPlusTreeNode {
         initializeNode();
     }
 
+    // Constructor for existing nodes
+    public BPlusTreeNode(int order, ArenaAllocator allocator, int offset) {
+        this.order = order;
+        this.allocator = allocator;
+        this.offset = offset;
+    }
+
     private int nodeSize() {
-        return INT_SIZE + INT_SIZE * (order - 1) + INT_SIZE * order + BOOLEAN_SIZE; // Keys + children + isLeaf
+        return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * (order - 1) + INT_SIZE * order + 10 * (order - 1);
     }
 
     private void initializeNode() {
@@ -55,85 +64,42 @@ public class BPlusTreeNode {
         allocator.getBuffer().putInt(offset + INT_SIZE * (order - 1 + index), childOffset);
     }
 
-    // Leaf Node Specific Methods
-    public int getValue(int index) {
-        return allocator.getBuffer().getInt(offset + INT_SIZE * (order - 1) + INT_SIZE * index);
-    }
-
-    public void setValue(int index, int value) {
-        allocator.getBuffer().putInt(offset + INT_SIZE * (order - 1) + INT_SIZE * index, value);
-    }
-
-    public void insertNonFull(int key, int value) {
+    public String getValue(int index) {
         ByteBuffer buffer = allocator.getBuffer();
-        int count = getKeyCount();
-        int i = count - 1;
-
-        if (isLeaf()) {
-            while (i >= 0 && getKey(i) > key) {
-                setKey(i + 1, getKey(i));
-                setValue(i + 1, getValue(i));
-                i--;
-            }
-            setKey(i + 1, key);
-            setValue(i + 1, value);
-            buffer.putInt(offset, count + 1);
-        } else {
-            while (i >= 0 && getKey(i) > key) {
-                i--;
-            }
-            i++;
-            int finalI = i;
-            BPlusTreeNode child = new BPlusTreeNode(order, allocator) {
-                {
-                    offset = getChild(finalI);
-                }
-            };
-            if (child.getKeyCount() == order - 1) {
-                splitChild(i);
-                if (getKey(i) < key) {
-                    i++;
-                }
-            }
-            int finalI1 = i;
-            new BPlusTreeNode(order, allocator) {
-                {
-                    offset = getChild(finalI1);
-                }
-            }.insertNonFull(key, value);
-        }
+        int start = offset + INT_SIZE * (order - 1) + INT_SIZE * index;
+        int length = buffer.getInt(start);
+        byte[] valueBytes = new byte[length];
+        buffer.position(start + INT_SIZE);
+        buffer.get(valueBytes);
+        return new String(valueBytes, StandardCharsets.UTF_8);
     }
 
-    private void splitChild(int index) {
-        BPlusTreeNode child = new BPlusTreeNode(order, allocator) {
-            {
-                offset = getChild(index);
-            }
-        };
+    public void setValue(int index, String value) {
+        ByteBuffer buffer = allocator.getBuffer();
+        int start = offset + INT_SIZE * (order - 1) + INT_SIZE * index;
+        byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
+        buffer.putInt(start, valueBytes.length);
+        buffer.position(start + INT_SIZE);
+        buffer.put(valueBytes);
+    }
 
-        BPlusTreeNode newNode = new BPlusTreeNode(order, allocator);
-        newNode.setLeaf(child.isLeaf());
+    public int getOffset() {
+        return offset;
+    }
 
-        int splitIndex = (order - 1) / 2;
-        for (int j = 0; j < splitIndex; j++) {
-            newNode.setKey(j, child.getKey(j + splitIndex + 1));
-            newNode.setValue(j, child.getValue(j + splitIndex + 1));
-        }
-        if (!child.isLeaf()) {
-            for (int j = 0; j <= splitIndex; j++) {
-                newNode.setChild(j, child.getChild(j + splitIndex + 1));
-            }
-        }
-
-        child.setLeaf(false);
-        for (int j = getKeyCount(); j > index; j--) {
-            setChild(j + 1, getChild(j));
-            setKey(j, getKey(j - 1));
-            setValue(j, getValue(j - 1));
-        }
-        setChild(index + 1, newNode.offset);
-        setKey(index, child.getKey(splitIndex));
+    public void incrementKeyCount() {
         allocator.getBuffer().putInt(offset, getKeyCount() + 1);
     }
 
+    public void decrementKeyCount() {
+        allocator.getBuffer().putInt(offset, getKeyCount() - 1);
+    }
+
+    public void printNode(int level) {
+        System.out.print("Level " + level + ": ");
+        for (int i = 0; i < getKeyCount(); i++) {
+            System.out.print(getKey(i) + "(" + getValue(i) + ") ");
+        }
+        System.out.println();
+    }
 }
