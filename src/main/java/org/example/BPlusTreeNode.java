@@ -12,11 +12,11 @@ class BPlusTreeNode {
     private int offset;
 
     // Constructor for new nodes
-    public BPlusTreeNode(int order, ArenaAllocator allocator) {
+    public BPlusTreeNode(int order, ArenaAllocator allocator, boolean isLeaf) {
         this.order = order;
         this.allocator = allocator;
-        this.offset = allocator.allocate(nodeSize());
-        initializeNode();
+        this.offset = allocator.allocate(nodeSize(isLeaf));
+        initializeNode(isLeaf);
     }
 
     // Constructor for existing nodes
@@ -26,14 +26,18 @@ class BPlusTreeNode {
         this.offset = offset;
     }
 
-    private int nodeSize() {
-        return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * (order - 1) + INT_SIZE * order + 10 * (order - 1);
+    private int nodeSize(boolean isLeaf) {
+        if (isLeaf) {
+            return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * (order - 1) + INT_SIZE * (order - 1) + 100 * (order - 1);
+        } else {
+            return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * order + INT_SIZE * (order + 1);
+        }
     }
 
-    private void initializeNode() {
+    private void initializeNode(boolean isLeaf) {
         ByteBuffer buffer = allocator.getBuffer();
         buffer.putInt(offset, 0); // Key count
-        buffer.put(offset + INT_SIZE, (byte) 1); // Is leaf
+        buffer.put(offset + INT_SIZE, (byte) (isLeaf ? 1 : 0)); // Is leaf
     }
 
     public int getKeyCount() {
@@ -44,29 +48,29 @@ class BPlusTreeNode {
         return allocator.getBuffer().get(offset + INT_SIZE) == 1;
     }
 
-    public void setLeaf(boolean leaf) {
-        allocator.getBuffer().put(offset + INT_SIZE, (byte) (leaf ? 1 : 0));
-    }
-
     public int getKey(int index) {
-        return allocator.getBuffer().getInt(offset + INT_SIZE * (index + 1));
+        return allocator.getBuffer().getInt(offset + INT_SIZE * (index + 2));
     }
 
     public void setKey(int index, int key) {
-        allocator.getBuffer().putInt(offset + INT_SIZE * (index + 1), key);
+        allocator.getBuffer().putInt(offset + INT_SIZE * (index + 2), key);
     }
 
     public int getChild(int index) {
-        return allocator.getBuffer().getInt(offset + INT_SIZE * (order - 1 + index));
+        return allocator.getBuffer().getInt(offset + INT_SIZE * (order + 1) + INT_SIZE * index);
     }
 
     public void setChild(int index, int childOffset) {
-        allocator.getBuffer().putInt(offset + INT_SIZE * (order - 1 + index), childOffset);
+        allocator.getBuffer().putInt(offset + INT_SIZE * (order + 1) + INT_SIZE * index, childOffset);
     }
 
+    // Only leaf nodes have values
     public String getValue(int index) {
+        if (!isLeaf()) {
+            throw new UnsupportedOperationException("Values can only be retrieved from leaf nodes.");
+        }
         ByteBuffer buffer = allocator.getBuffer();
-        int start = offset + INT_SIZE * (order - 1) + INT_SIZE * index;
+        int start = offset + INT_SIZE * (order + 1) + INT_SIZE * index;
         int length = buffer.getInt(start);
         byte[] valueBytes = new byte[length];
         buffer.position(start + INT_SIZE);
@@ -75,8 +79,11 @@ class BPlusTreeNode {
     }
 
     public void setValue(int index, String value) {
+        if (!isLeaf()) {
+            throw new UnsupportedOperationException("Values can only be set for leaf nodes.");
+        }
         ByteBuffer buffer = allocator.getBuffer();
-        int start = offset + INT_SIZE * (order - 1) + INT_SIZE * index;
+        int start = offset + INT_SIZE * (order + 1) + INT_SIZE * index;
         byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
         buffer.putInt(start, valueBytes.length);
         buffer.position(start + INT_SIZE);
@@ -98,7 +105,13 @@ class BPlusTreeNode {
     public void printNode(int level) {
         System.out.print("Level " + level + ": ");
         for (int i = 0; i < getKeyCount(); i++) {
-            System.out.print(getKey(i) + "(" + getValue(i) + ") ");
+            System.out.print(getKey(i));
+            if (isLeaf()) {
+                System.out.print("(" + getValue(i) + ")");
+            }
+            if (i < getKeyCount() - 1) {
+                System.out.print(", ");
+            }
         }
         System.out.println();
     }
