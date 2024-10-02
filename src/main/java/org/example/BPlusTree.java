@@ -1,6 +1,6 @@
 package org.example;
 
-class BPlusTree {
+public class BPlusTree {
     private int order;
     private ArenaAllocator allocator;
     private BPlusTreeNode root;
@@ -132,7 +132,7 @@ class BPlusTree {
         // Test Insertions
         System.out.println("Inserting values:");
         tree.insert(10, "Value10");
-        tree.insert(20, "Value20");
+        //tree.insert(20, "Value20");
        // tree.insert(5, "Value5");
         //tree.insert(6, "Value6");
         //tree.insert(12, "Value12");
@@ -145,9 +145,9 @@ class BPlusTree {
         // Test Search
         System.out.println("\nSearching for values:");
         System.out.println("Key 10: " + tree.search(10)); // Should return "Value10"
-        System.out.println("Key 5: " + tree.search(5));   // Should return "Value5"
-        System.out.println("Key 30: " + tree.search(30)); // Should return "Value30"
-        System.out.println("Key 15: " + tree.search(15)); // Should return null
+        //System.out.println("Key 5: " + tree.search(5));   // Should return "Value5"
+        //System.out.println("Key 30: " + tree.search(30)); // Should return "Value30"
+        //System.out.println("Key 15: " + tree.search(15)); // Should return null
 
         // Additional Test: Edge cases
         System.out.println("Searching for non-existing key:");

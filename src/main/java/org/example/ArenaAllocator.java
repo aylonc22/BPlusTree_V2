@@ -2,7 +2,7 @@ package org.example;
 
 import java.nio.ByteBuffer;
 
-class ArenaAllocator {
+public class ArenaAllocator {
     private ByteBuffer buffer;
     private int lastOffset = 0;
 
