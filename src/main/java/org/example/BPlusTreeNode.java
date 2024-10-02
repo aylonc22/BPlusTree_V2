@@ -65,29 +65,22 @@ class BPlusTreeNode {
     }
 
     // Only leaf nodes have values
-    public String getValue(int index) {
+    public int getValue(int index) {
         if (!isLeaf()) {
             throw new UnsupportedOperationException("Values can only be retrieved from leaf nodes.");
         }
         ByteBuffer buffer = allocator.getBuffer();
         int start = offset + INT_SIZE * (order + 1) + INT_SIZE * index;
-        int length = buffer.getInt(start);
-        byte[] valueBytes = new byte[length];
-        buffer.position(start + INT_SIZE);
-        buffer.get(valueBytes);
-        return new String(valueBytes, StandardCharsets.UTF_8);
+        return buffer.getInt(start); // Retrieve the integer directly
     }
 
-    public void setValue(int index, String value) {
+    public void setValue(int index, int value) {
         if (!isLeaf()) {
             throw new UnsupportedOperationException("Values can only be set for leaf nodes.");
         }
         ByteBuffer buffer = allocator.getBuffer();
         int start = offset + INT_SIZE * (order + 1) + INT_SIZE * index;
-        byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
-        buffer.putInt(start, valueBytes.length);
-        buffer.position(start + INT_SIZE);
-        buffer.put(valueBytes);
+        buffer.putInt(start, value); // Store the integer directly
     }
 
     public int getOffset() {
