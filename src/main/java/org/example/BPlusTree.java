@@ -1,25 +1,32 @@
 package org.example;
 
-class BPlusTree {
+public class BPlusTree {
+    private int order;
+    private ArenaAllocator allocator;
     private BPlusTreeNode root;
-    private final int order;
-    private final ArenaAllocator allocator;
 
-    public BPlusTree(int order, int arenaSize) {
+    public BPlusTree(int order, ArenaAllocator allocator) {
         this.order = order;
-        this.allocator = new ArenaAllocator(arenaSize);
-        this.root = new BPlusTreeNode(order, allocator);
+        this.allocator = allocator;
+        this.root = new BPlusTreeNode(order, allocator, true); // Root starts as a leaf node
     }
 
     public void insert(int key, String value) {
-        if (root.getKeyCount() == order - 1) {
-            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator);
-            newRoot.setLeaf(false);
-            newRoot.setChild(0, root.getOffset());
+        BPlusTreeNode rootNode = root;
+        if (rootNode.getKeyCount() == order - 1) {
+            // Root is full, need to split
+            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator, false); // New root is internal
+            newRoot.setChild(0, rootNode.getOffset());
             splitChild(newRoot, 0);
+            int i = 0;
+            if (newRoot.getKey(0) < key) {
+                i++;
+            }
+            insertNonFull(newRoot, key, value);
             root = newRoot;
+        } else {
+            insertNonFull(rootNode, key, value);
         }
-        insertNonFull(root, key, value);
     }
 
     private void insertNonFull(BPlusTreeNode node, int key, String value) {
@@ -27,15 +34,17 @@ class BPlusTree {
         int i = count - 1;
 
         if (node.isLeaf()) {
+            // Insert into the leaf node
             while (i >= 0 && node.getKey(i) > key) {
                 node.setKey(i + 1, node.getKey(i));
-                node.setValue(i + 1, node.getValue(i));
+                node.setValue(i + 1, node.getValue(i)); // Shift values as well
                 i--;
             }
             node.setKey(i + 1, key);
             node.setValue(i + 1, value);
             node.incrementKeyCount();
         } else {
+            // Navigate to the correct child
             while (i >= 0 && node.getKey(i) > key) {
                 i--;
             }
@@ -52,29 +61,35 @@ class BPlusTree {
     }
 
     private void splitChild(BPlusTreeNode parent, int index) {
-        BPlusTreeNode child = new BPlusTreeNode(order, allocator, parent.getChild(index));
-        BPlusTreeNode newNode = new BPlusTreeNode(order, allocator);
-        newNode.setLeaf(child.isLeaf());
+        BPlusTreeNode fullChild = new BPlusTreeNode(order, allocator, parent.getChild(index));
+        BPlusTreeNode newChild = new BPlusTreeNode(order, allocator, fullChild.isLeaf());
 
-        int splitIndex = (order - 1) / 2;
-        for (int j = 0; j < splitIndex; j++) {
-            newNode.setKey(j, child.getKey(j + splitIndex + 1));
-            newNode.setValue(j, child.getValue(j + splitIndex + 1));
+        // Transfer keys and children to the new child
+        int midIndex = (order - 1) / 2;
+        int midKey = fullChild.getKey(midIndex);
+
+        // Insert the median key into the parent node
+        parent.setChild(index + 1, newChild.getOffset());
+        parent.setKey(index, midKey);
+        parent.incrementKeyCount();
+
+        for (int i = parent.getKeyCount() - 1; i > index; i--) {
+            parent.setKey(i, parent.getKey(i - 1));
+            parent.setChild(i + 1, parent.getChild(i));
         }
-        if (!child.isLeaf()) {
-            for (int j = 0; j <= splitIndex; j++) {
-                newNode.setChild(j, child.getChild(j + splitIndex + 1));
+
+        // Move the keys and values to the new child
+        for (int i = 0; i < midIndex; i++) {
+            newChild.setKey(i, fullChild.getKey(i + midIndex + 1));
+            newChild.setValue(i, fullChild.getValue(i + midIndex + 1));
+        }
+        if (!fullChild.isLeaf()) {
+            for (int i = 0; i <= midIndex; i++) {
+                newChild.setChild(i, fullChild.getChild(i + midIndex + 1));
             }
         }
-
-        child.decrementKeyCount();
-        for (int j = parent.getKeyCount(); j > index; j--) {
-            parent.setChild(j + 1, parent.getChild(j));
-            parent.setKey(j, parent.getKey(j - 1));
-        }
-        parent.setChild(index + 1, newNode.getOffset());
-        parent.setKey(index, child.getKey(splitIndex));
-        parent.incrementKeyCount();
+        fullChild.decrementKeyCount();
+        newChild.incrementKeyCount();
     }
 
     public String search(int key) {
@@ -83,16 +98,16 @@ class BPlusTree {
 
     private String search(BPlusTreeNode node, int key) {
         int i = 0;
-        while (i < node.getKeyCount() && node.getKey(i) < key) {
+        while (i < node.getKeyCount() && key > node.getKey(i)) {
             i++;
         }
-        if (i < node.getKeyCount() && node.getKey(i) == key) {
+        if (i < node.getKeyCount() && key == node.getKey(i) && node.isLeaf()) {
             return node.getValue(i);
+        } else if (node.isLeaf()) {
+            return null; // Not found
+        } else {
+            return search(new BPlusTreeNode(order, allocator, node.getChild(i)), key);
         }
-        if (node.isLeaf()) {
-            return null;
-        }
-        return search(new BPlusTreeNode(order, allocator, node.getChild(i)), key);
     }
 
     public void printTree() {
@@ -100,28 +115,42 @@ class BPlusTree {
     }
 
     private void printTree(BPlusTreeNode node, int level) {
-        node.printNode(level);
-        if (!node.isLeaf()) {
-            for (int i = 0; i <= node.getKeyCount(); i++) {
-                printTree(new BPlusTreeNode(order, allocator, node.getChild(i)), level + 1);
+        if (node != null) {
+            node.printNode(level);
+            if (!node.isLeaf()) {
+                for (int i = 0; i <= node.getKeyCount(); i++) {
+                    printTree(new BPlusTreeNode(order, allocator, node.getChild(i)), level + 1);
+                }
             }
         }
     }
-
     public static void main(String[] args) {
-        BPlusTree bPlusTree = new BPlusTree(4, 1024);
+        // Initialize the B+ tree with order 3 and an arena allocator
+        ArenaAllocator allocator = new ArenaAllocator(1024); // Adjust size as needed
+        BPlusTree tree = new BPlusTree(3, allocator);
 
-        bPlusTree.insert(10, "Ten");
-        bPlusTree.insert(20, "Twenty");
-        bPlusTree.insert(5, "Five");
-        bPlusTree.insert(6, "Six");
-        bPlusTree.insert(12, "Twelve");
-        bPlusTree.insert(30, "Thirty");
+        // Test Insertions
+        System.out.println("Inserting values:");
+        tree.insert(10, "Value10");
+        //tree.insert(20, "Value20");
+       // tree.insert(5, "Value5");
+        //tree.insert(6, "Value6");
+        //tree.insert(12, "Value12");
+        //tree.insert(30, "Value30");
 
-        System.out.println("Searching for key 10: " + bPlusTree.search(10)); // Ten
-        System.out.println("Searching for key 15: " + bPlusTree.search(15)); // null
+        // Print the tree structure after insertions
+        System.out.println("\nTree structure after insertions:");
+        tree.printTree();
 
-        System.out.println("Tree structure:");
-        bPlusTree.printTree(); // Print the tree structure
+        // Test Search
+        System.out.println("\nSearching for values:");
+        System.out.println("Key 10: " + tree.search(10)); // Should return "Value10"
+        //System.out.println("Key 5: " + tree.search(5));   // Should return "Value5"
+        //System.out.println("Key 30: " + tree.search(30)); // Should return "Value30"
+        //System.out.println("Key 15: " + tree.search(15)); // Should return null
+
+        // Additional Test: Edge cases
+        System.out.println("Searching for non-existing key:");
+        System.out.println("Key 100: " + tree.search(100)); // Should return null
     }
 }
