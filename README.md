@@ -23,7 +23,7 @@ This project implements a B+ tree data structure in Java, enhanced with an arena
 
 ### Future Enhancements
 
-- **Value Serialization with JSON:** Currently, the B+ tree implementation supports values of type `String` only. An option for future improvements is to extend this support to a broader range of objects using JSON serialization. This enhancement would provide several benefits:
+- **Value Serialization with JSON:** Currently, the B+ tree implementation supports values of type `Integer` only. An option for future improvements is to extend this support to a broader range of objects using JSON serialization. This enhancement would provide several benefits:
     - **Flexibility:** Allowing the storage of various types of objects, not limited to strings, would enhance the versatility of the B+ tree for different use cases.
     - **Interoperability:** Facilitating easier integration with other systems and applications that use JSON for data interchange.
     - **Rich Data Structures:** Enabling the B+ tree to handle more complex data structures, including nested objects and arrays, would improve its applicability in diverse scenarios.

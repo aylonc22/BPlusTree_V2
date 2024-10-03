@@ -16,6 +16,7 @@ public class ArenaAllocator {
         }
         int currentOffset = lastOffset;
         buffer.position(currentOffset + size);
+        lastOffset = buffer.position();
         return currentOffset;
     }
 

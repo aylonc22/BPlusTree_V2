@@ -1,7 +1,6 @@
 package org.example;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 class BPlusTreeNode {
     private static final int INT_SIZE = Integer.BYTES;
@@ -28,9 +27,12 @@ class BPlusTreeNode {
 
     private int nodeSize(boolean isLeaf) {
         if (isLeaf) {
-            return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * (order - 1) + INT_SIZE * (order - 1) + 100 * (order - 1);
+            // Leaf node: Key Count + Is Leaf + (order - 1) Keys + (order - 1) Values + Parent Offset
+            var start = INT_SIZE + BOOLEAN_SIZE + INT_SIZE * (order - 1) + INT_SIZE * (order - 1) + INT_SIZE;
+            return start;
         } else {
-            return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * order + INT_SIZE * (order + 1);
+            // Internal node: Key Count + Is Leaf + order Keys + (order + 1) Children + Parent Offset
+            return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * order + INT_SIZE * (order + 1) + INT_SIZE;
         }
     }
 
@@ -38,6 +40,7 @@ class BPlusTreeNode {
         ByteBuffer buffer = allocator.getBuffer();
         buffer.putInt(offset, 0); // Key count
         buffer.put(offset + INT_SIZE, (byte) (isLeaf ? 1 : 0)); // Is leaf
+        setParentOffset(-1);
     }
 
     public int getKeyCount() {
@@ -70,7 +73,7 @@ class BPlusTreeNode {
             throw new UnsupportedOperationException("Values can only be retrieved from leaf nodes.");
         }
         ByteBuffer buffer = allocator.getBuffer();
-        int start = offset + INT_SIZE * (order + 1) + INT_SIZE * index;
+        int start = offset + INT_SIZE * order  + INT_SIZE * index;
         return buffer.getInt(start); // Retrieve the integer directly
     }
 
@@ -79,7 +82,7 @@ class BPlusTreeNode {
             throw new UnsupportedOperationException("Values can only be set for leaf nodes.");
         }
         ByteBuffer buffer = allocator.getBuffer();
-        int start = offset + INT_SIZE * (order + 1) + INT_SIZE * index;
+        int start = offset + INT_SIZE * order  + INT_SIZE * index;
         buffer.putInt(start, value); // Store the integer directly
     }
 
@@ -93,6 +96,29 @@ class BPlusTreeNode {
 
     public void decrementKeyCount() {
         allocator.getBuffer().putInt(offset, getKeyCount() - 1);
+    }
+    public int getParentOffset() {
+       int start = offset + nodeSize(isLeaf()) - INT_SIZE;
+        return allocator.getBuffer().getInt(start);
+    }
+
+    public void setParentOffset(int parentOffset) {
+        allocator.getBuffer().putInt(offset + nodeSize(isLeaf()) - INT_SIZE, parentOffset);
+    }
+
+    public int getParentIndex() {
+        int parentOffset = getParentOffset();
+        if (parentOffset == -1) {
+            return -1; // No parent
+        }
+
+        BPlusTreeNode parentNode = new BPlusTreeNode(order, allocator, parentOffset);
+        for (int i = 0; i <= parentNode.getKeyCount(); i++) {
+            if (parentNode.getChild(i) == this.offset) {
+                return i; // Found the index of this child in its parent
+            }
+        }
+        return -1; // Should not happen if the node is correctly linked
     }
 
     public void printNode(int level) {
