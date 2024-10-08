@@ -33,6 +33,8 @@ public class BPlusTree {
             BPlusTreeNode childNode = new BPlusTreeNode(order, allocator, newRoot.getChild(childIndex));
             root = newRoot; // Update the root reference
             insertNonFull(childNode, key, value);
+
+
         } else {
             // Insert into the non-full root
             insertNonFull(root, key, value);
@@ -56,10 +58,11 @@ public class BPlusTree {
                 node.setKey(j, node.getKey(j - 1));
                 node.setValue(j, node.getValue(j - 1)); // Move values as well
             }
-
+            //printTree(node,0);
             // Insert the new key and value
             node.setKey(i + 1, key);
             node.setValue(i + 1, value);
+            node.printNodeContents();
         } else {
             // Find the child to recurse into
             while (i >= 0 && key < node.getKey(i)) {
@@ -183,16 +186,16 @@ public class BPlusTree {
 
         // Test Insertions
         System.out.println("Inserting values:");
-        tree.insert(10, 10);
-        tree.insert(20, 20);
-        //tree.insert(5, 5);
-        //tree.insert(6, "Value6");
+        tree.insert(10, 5);
+        //tree.insert(20, 30);
+         //tree.insert(5, 5);
+        //tree.insert(6, 6);
         //tree.insert(12, "Value12");
         //tree.insert(30, "Value30");
 
         // Print the tree structure after insertions
         //System.out.println("\nTree structure after insertions:");
-       //tree.printTree();
+        //tree.printTree();
 
         // Test Search
         //System.out.println("\nSearching for values:");
