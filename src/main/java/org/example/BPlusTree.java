@@ -12,6 +12,10 @@ public class BPlusTree {
     }
 
     public void insert(int key, int value) {
+       if(value == -1){
+           throw new IllegalArgumentException("Value cannot be -1");
+       }
+
         // If tree is empty, create a new root
         if (root == null) {
             root = new BPlusTreeNode(order, allocator, true); // Create a new leaf node as root
@@ -20,11 +24,12 @@ public class BPlusTree {
             root.incrementKeyCount();
             return;
         }
-
-        // If root is full, split it and create a new root
-        if (root.getKeyCount() == order - 1) {
-            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator, false);
-            newRoot.setChild(0, root.getOffset());
+      
+        BPlusTreeNode rootNode = root;
+        if (rootNode.getKeyCount() == order - 1) {
+            // Root is full, need to split
+            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator, false); // New root is internal
+            newRoot.setChild(0, rootNode.getOffset());
             splitChild(newRoot, 0);
 
             int childIndex = newRoot.getKeyCount() > 0 && key > newRoot.getKey(0) ? 1 : 0;
@@ -46,7 +51,6 @@ public class BPlusTree {
 
     private void insertNonFull(BPlusTreeNode node, int key, int value) {
         int i = node.getKeyCount() - 1;
-
         if (node.isLeaf()) {
             // Find the position to insert the new key
             while (i >= 0 && key < node.getKey(i)) {
@@ -186,6 +190,7 @@ public class BPlusTree {
 
         // Test Insertions
         System.out.println("Inserting values:");
+
         tree.insert(10, 5);
         //tree.insert(20, 30);
          //tree.insert(5, 5);
@@ -203,7 +208,6 @@ public class BPlusTree {
         //System.out.println("Key 5: " + tree.search(5));   // Should return "Value5"
         //System.out.println("Key 30: " + tree.search(30)); // Should return "Value30"
         //System.out.println("Key 15: " + tree.search(15)); // Should return null
-
         // Additional Test: Edge cases
         //System.out.println("Searching for non-existing key:");
         //System.out.println("Key 100: " + tree.search(100)); // Should return null

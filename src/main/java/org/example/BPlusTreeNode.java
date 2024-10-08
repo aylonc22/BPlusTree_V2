@@ -82,6 +82,7 @@ class BPlusTreeNode {
         }
         ByteBuffer buffer = allocator.getBuffer();
         int start = offset + INT_SIZE * order + BOOLEAN_SIZE + INT_SIZE * index;
+
         buffer.putInt(start, value); // Store the integer directly
     }
 
