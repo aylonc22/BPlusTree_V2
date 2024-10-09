@@ -51,11 +51,13 @@ class BPlusTreeNode {
     }
 
     public int getKey(int index) {
-        return allocator.getBuffer().getInt(offset + INT_SIZE * (index + 2) + BOOLEAN_SIZE);
+        int start = offset + INT_SIZE + BOOLEAN_SIZE + INT_SIZE * index;
+        return allocator.getBuffer().getInt(start);
     }
 
     public void setKey(int index, int key) {
-        allocator.getBuffer().putInt(offset + INT_SIZE * (index + 2) + BOOLEAN_SIZE, key);
+       int start = offset + INT_SIZE + BOOLEAN_SIZE + INT_SIZE * index;
+        allocator.getBuffer().putInt(start, key);
     }
 
     public int getChild(int index) {
@@ -136,31 +138,27 @@ class BPlusTreeNode {
         System.out.println();
     }
     public void printNodeContents() {
-        ByteBuffer buffer = allocator.getBuffer();
         System.out.println("Node contents at offset " + offset + ":");
 
         // Print Key Count
-        System.out.printf("Key Count: %d%n", buffer.getInt(offset));
+        System.out.printf("Key Count: %d%n", getKeyCount());
 
         // Print Is Leaf
-        System.out.printf("Is Leaf: %d%n", buffer.get(offset + INT_SIZE));
+        System.out.printf("Is Leaf: %b%n", isLeaf() ? "true" : "false");
 
         int keyCount = getKeyCount();
-        int currentPosition = offset + INT_SIZE + BOOLEAN_SIZE; // Start after key count and isLeaf
 
         // Print Keys
         System.out.println("Keys:");
         for (int i = 0; i < keyCount; i++) {
-            System.out.printf("Key[%d]: %d%n", i, buffer.getInt(currentPosition));
-            currentPosition += INT_SIZE; // Move to next key
+            System.out.printf("Key[%d]: %d%n", i, getKey(i));
         }
 
         // Print Values if it's a leaf node
         if (isLeaf()) {
             System.out.println("Values:");
             for (int i = 0; i < keyCount; i++) {
-                System.out.printf("Value[%d]: %d%n", i, buffer.getInt(currentPosition));
-                currentPosition += INT_SIZE; // Move to next value
+                System.out.printf("Value[%d]: %d%n", i, getValue(i));
             }
         }
 
@@ -168,12 +166,11 @@ class BPlusTreeNode {
         if (!isLeaf()) {
             System.out.println("Children:");
             for (int i = 0; i <= keyCount; i++) { // Include one extra for the children
-                System.out.printf("Child[%d]: %d%n", i, buffer.getInt(currentPosition));
-                currentPosition += INT_SIZE; // Move to next child
+                System.out.printf("Child[%d]: %d%n", i, getChild(i));
             }
         }
 
         // Print Parent Offset
-        System.out.printf("Parent Offset: %d%n", buffer.getInt(currentPosition));
+        System.out.printf("Parent Offset: %d%n", getParentOffset());
     }
 }

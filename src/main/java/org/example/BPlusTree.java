@@ -8,7 +8,7 @@ public class BPlusTree {
     public BPlusTree(int order, ArenaAllocator allocator) {
         this.order = order;
         this.allocator = allocator;
-        this.root = new BPlusTreeNode(order, allocator, true); // Root starts as a leaf node
+       // this.root = new BPlusTreeNode(order, allocator, true); // Root starts as a leaf node
     }
 
     public void insert(int key, int value) {
@@ -22,6 +22,7 @@ public class BPlusTree {
             root.setKey(0, key);
             root.setValue(0, value);
             root.incrementKeyCount();
+            root.printNodeContents();
             return;
         }
       
@@ -209,7 +210,5 @@ public class BPlusTree {
         //System.out.println("Key 30: " + tree.search(30)); // Should return "Value30"
         //System.out.println("Key 15: " + tree.search(15)); // Should return null
         // Additional Test: Edge cases
-        //System.out.println("Searching for non-existing key:");
-        //System.out.println("Key 100: " + tree.search(100)); // Should return null
     }
 }
