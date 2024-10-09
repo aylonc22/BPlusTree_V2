@@ -27,12 +27,12 @@ public class BPlusTreeTest {
     }
     @Test
     public void should_inert_many(){
-        var tree = new BPlusTree();
-        var items = new HashMap<Integer,String>();
+        var tree = new BPlusTree(3,new ArenaAllocator(1024));
+        var items = new HashMap<Integer,Integer>();
         for(int i = 0;i<10;i++){
-            items.put(i, String.valueOf((int)(50 + Math.random() * 51)));
+            items.put(i, (int)(50 + Math.random() * 51));
         }
         tree.insertMany(items);
-        tree.printTree("");
+        tree.printTree();
     }
 }

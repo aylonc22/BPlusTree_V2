@@ -1,5 +1,9 @@
 package org.example;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
 public class BPlusTree {
     private int order;
     private ArenaAllocator allocator;
@@ -8,9 +12,12 @@ public class BPlusTree {
     public BPlusTree(int order, ArenaAllocator allocator) {
         this.order = order;
         this.allocator = allocator;
-       // this.root = new BPlusTreeNode(order, allocator, true); // Root starts as a leaf node
     }
-
+public void insertMany(HashMap<Integer,Integer> items){
+        for (var item:items.entrySet()){
+            insert(item.getKey(),item.getValue());
+        }
+}
     public void insert(int key, int value) {
        if(value == -1){
            throw new IllegalArgumentException("Value cannot be -1");
@@ -22,7 +29,6 @@ public class BPlusTree {
             root.setKey(0, key);
             root.setValue(0, value);
             root.incrementKeyCount();
-            root.printNodeContents();
             return;
         }
       
@@ -67,7 +73,6 @@ public class BPlusTree {
             // Insert the new key and value
             node.setKey(i + 1, key);
             node.setValue(i + 1, value);
-            node.printNodeContents();
         } else {
             // Find the child to recurse into
             while (i >= 0 && key < node.getKey(i)) {
@@ -171,15 +176,22 @@ public class BPlusTree {
     }
 
     public void printTree() {
-        printTree(root, 0);
+        Set<Integer> printedOffsets = new HashSet<>();
+        printTree(root, 0, printedOffsets);
     }
 
-    private void printTree(BPlusTreeNode node, int level) {
+    private void printTree(BPlusTreeNode node, int level, Set<Integer> printedOffsets) {
         if (node != null) {
-            node.printNode(level);
-            if (!node.isLeaf()) {
-                for (int i = 0; i <= node.getKeyCount(); i++) {
-                    printTree(new BPlusTreeNode(order, allocator, node.getChild(i)), level + 1);
+            // Check if this node has already been printed
+            if (!printedOffsets.contains(node.getOffset())) {
+                node.printNode(level); // Print the node contents
+                printedOffsets.add(node.getOffset()); // Mark this node as printed
+
+                // If the node is not a leaf, print its children
+                if (!node.isLeaf()) {
+                    for (int i = 0; i <= node.getKeyCount(); i++) {
+                        printTree(new BPlusTreeNode(order, allocator, node.getChild(i)), level + 1, printedOffsets);
+                    }
                 }
             }
         }
@@ -192,16 +204,16 @@ public class BPlusTree {
         // Test Insertions
         System.out.println("Inserting values:");
 
-        tree.insert(10, 5);
-        //tree.insert(20, 30);
-         //tree.insert(5, 5);
-        //tree.insert(6, 6);
-        //tree.insert(12, "Value12");
+        tree.insert(1, 5);
+        tree.insert(2, 30);
+         tree.insert(3, 5);
+        tree.insert(6, 6);
+        tree.insert(7, 8);
         //tree.insert(30, "Value30");
 
         // Print the tree structure after insertions
         //System.out.println("\nTree structure after insertions:");
-        //tree.printTree();
+        tree.printTree();
 
         // Test Search
         //System.out.println("\nSearching for values:");
