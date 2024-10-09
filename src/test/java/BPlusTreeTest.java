@@ -35,4 +35,15 @@ public class BPlusTreeTest {
         tree.insertMany(items);
         tree.printTree();
     }
+    @Test
+    public void should_delete(){
+        var tree = new BPlusTree(3,new ArenaAllocator(1024));
+        var items = new HashMap<Integer,Integer>();
+        for(int i = 0;i<4;i++){
+            items.put(i, (int)(50 + Math.random() * 51));
+        }
+        tree.insertMany(items);
+
+        tree.delete(1);
+    }
 }
