@@ -217,7 +217,7 @@ public void insertMany(HashMap<Integer,Integer> items){
         // If found in this node
         if (index < node.getKeyCount() && key == node.getKey(index)) {
             if (node.isLeaf()) {
-                // Remove the key and value from the leaf node
+                // Directly remove the key and value from the leaf node
                 removeFromLeaf(node, index);
             } else {
                 // Remove from internal node
@@ -234,9 +234,9 @@ public void insertMany(HashMap<Integer,Integer> items){
             // Get the child node to recurse into
             BPlusTreeNode childNode = new BPlusTreeNode(order, allocator, node.getChild(isLastChild ? index - 1 : index));
 
-            // If the child is underflowed, fix it
+            // If the child is underflow, fix it
             if (childNode.getKeyCount() < (order - 1) / 2) {
-                fill(node, index); // This method needs to be defined
+                fill(node, index);
                 childNode = new BPlusTreeNode(order, allocator, node.getChild(isLastChild ? index - 1 : index));
             }
 
@@ -255,28 +255,34 @@ public void insertMany(HashMap<Integer,Integer> items){
 
     private void removeFromInternal(BPlusTreeNode node, int index) {
         int keyToDelete = node.getKey(index);
-
         BPlusTreeNode leftChild = new BPlusTreeNode(order, allocator, node.getChild(index));
+
+        // If the left child has enough keys, find the predecessor
         if (leftChild.getKeyCount() >= (order - 1) / 2) {
-            // Find the predecessor
             int predecessor = getPredecessor(node, index);
-            node.setKey(index, predecessor);
-            delete(leftChild, predecessor);
-        } else {
+            node.setKey(index, predecessor); // Replace the key with the predecessor
+            // Now delete the predecessor from the leaf
+            BPlusTreeNode predecessorNode = new BPlusTreeNode(order, allocator, leftChild.getChild(leftChild.getKeyCount() - 1));
+            delete(predecessorNode, predecessor); // Delete the predecessor only if needed
+        }
+        // If the right child has enough keys, find the successor
+        else {
             BPlusTreeNode rightChild = new BPlusTreeNode(order, allocator, node.getChild(index + 1));
             if (rightChild.getKeyCount() >= (order - 1) / 2) {
-                // Find the successor
                 int successor = getSuccessor(node, index);
-                node.setKey(index, successor);
-                delete(rightChild, successor);
+                node.setKey(index, successor); // Replace the key with the successor
+                // Now delete the successor from the leaf
+                BPlusTreeNode successorNode = new BPlusTreeNode(order, allocator, rightChild.getChild(0));
+                delete(successorNode, successor); // Delete the successor only if needed
             } else {
-                // Merge
+                // If both children have the minimum number of keys, merge
                 merge(node, index);
                 leftChild = new BPlusTreeNode(order, allocator, node.getChild(index)); // Update leftChild reference
-                delete(leftChild, keyToDelete);
+                delete(leftChild, keyToDelete); // Delete the key from the merged child
             }
         }
     }
+
 
     private int getPredecessor(BPlusTreeNode node, int index) {
         BPlusTreeNode current = new BPlusTreeNode(order, allocator, node.getChild(index));
@@ -295,36 +301,57 @@ public void insertMany(HashMap<Integer,Integer> items){
     }
 
     private void fill(BPlusTreeNode node, int index) {
-        // This method should handle redistributing keys from sibling nodes or merging nodes.
-        // Example logic might include checking left and right siblings to see if keys can be borrowed.
-        // Implement the fill logic based on your B+ tree structure and requirements.
-    }
-
-    private void merge(BPlusTreeNode node, int index) {
         BPlusTreeNode leftChild = new BPlusTreeNode(order, allocator, node.getChild(index));
         BPlusTreeNode rightChild = new BPlusTreeNode(order, allocator, node.getChild(index + 1));
 
-        // Move the middle key to the left child
-        leftChild.setKey(leftChild.getKeyCount(), node.getKey(index));
-        for (int i = 0; i < rightChild.getKeyCount(); i++) {
-            leftChild.setKey(leftChild.getKeyCount() + i + 1, rightChild.getKey(i));
-            leftChild.setValue(leftChild.getKeyCount() + i + 1, rightChild.getValue(i));
-        }
-
-        // Link children
-        if (!leftChild.isLeaf()) {
-            for (int i = 0; i <= rightChild.getKeyCount(); i++) {
-                leftChild.setChild(leftChild.getKeyCount() + i + 1, rightChild.getChild(i));
+        // If the left child has enough keys
+        if (leftChild.getKeyCount() >= (order - 1) / 2) {
+            // Move a key from the parent to the left child
+            for (int i = leftChild.getKeyCount(); i > 0; i--) {
+                leftChild.setKey(i, leftChild.getKey(i - 1));
             }
+            leftChild.setKey(0, node.getKey(index - 1));
+            node.setKey(index - 1, leftChild.getKey(1)); // Move the first key of the right child up
+            leftChild.incrementKeyCount();
+            rightChild.decrementKeyCount();
+        }
+        // If the right child has enough keys
+        else if (rightChild.getKeyCount() >= (order - 1) / 2) {
+            leftChild.setKey(leftChild.getKeyCount(), node.getKey(index)); // Move the parent key down
+            node.setKey(index, rightChild.getKey(0)); // Move the first key of the right child up
+            for (int i = 1; i < rightChild.getKeyCount(); i++) {
+                rightChild.setKey(i - 1, rightChild.getKey(i));
+            }
+            rightChild.decrementKeyCount();
+            leftChild.incrementKeyCount();
+        }
+        // If both children have the minimum number of keys, merge them
+        else {
+            merge(node, index);
+            leftChild = new BPlusTreeNode(order, allocator, node.getChild(index)); // Update leftChild reference
+            leftChild.decrementKeyCount(); // Remove the merged key
+        }
+    }
+
+    private void merge(BPlusTreeNode parent, int index) {
+        BPlusTreeNode leftChild = new BPlusTreeNode(order, allocator, parent.getChild(index));
+        BPlusTreeNode rightChild = new BPlusTreeNode(order, allocator, parent.getChild(index + 1));
+
+        // Move the key from the parent to the merged child
+        leftChild.setKey(leftChild.getKeyCount(), parent.getKey(index)); // Move the parent key down
+        leftChild.incrementKeyCount();
+
+        // Copy keys from the right child to the left child
+        for (int i = 0; i < rightChild.getKeyCount(); i++) {
+            leftChild.setKey(leftChild.getKeyCount(), rightChild.getKey(i));
+            leftChild.incrementKeyCount();
         }
 
-        // Update key counts
-        leftChild.incrementKeyCount(); // Include the moved middle key
-        int rightChildKeyCount = rightChild.getKeyCount();
-        for(int i =0;i<rightChildKeyCount;i++) {
-            leftChild.incrementKeyCount();// Add the right child keys
+        // Update parent
+        for (int i = index + 1; i < parent.getKeyCount(); i++) {
+            parent.setKey(i - 1, parent.getKey(i));
         }
-        node.decrementKeyCount(); // Remove the key from the parent
+        parent.decrementKeyCount();
     }
     public void printTree() {
         Set<Integer> printedOffsets = new HashSet<>();
