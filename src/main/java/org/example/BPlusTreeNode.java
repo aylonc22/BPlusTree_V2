@@ -123,7 +123,14 @@ class BPlusTreeNode {
         }
         return -1; // Should not happen if the node is correctly linked
     }
-
+    public boolean containsKey(int key) {
+        for (int i = 0; i < getKeyCount(); i++) {
+            if (getKey(i) == key) {
+                return true;
+            }
+        }
+        return false;
+    }
     public void printNode(int level) {
         System.out.print("Level " + level + ": ");
         for (int i = 0; i < getKeyCount(); i++) {

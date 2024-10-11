@@ -200,7 +200,6 @@ public void insertMany(HashMap<Integer,Integer> items){
             return; // Tree is empty
         }
 
-        // Start the deletion process
         delete(root, key);
 
         // If the root node is empty after deletion, make the first child the new root
@@ -211,22 +210,34 @@ public void insertMany(HashMap<Integer,Integer> items){
 
     private void delete(BPlusTreeNode node, int key) {
         int index = 0;
-        System.out.println("t");
-        node.printNodeContents();
+
         // Find the index of the key in the current node
         while (index < node.getKeyCount() && key > node.getKey(index)) {
             index++;
         }
 
+        // If found in this node
         if (index < node.getKeyCount() && key == node.getKey(index)) {
             if (node.isLeaf()) {
-                // Key found in leaf node; remove it
+                // Key found in leaf; remove it
                 removeFromLeaf(node, index);
             } else {
-                // Key found in internal node; find the appropriate leaf
-                BPlusTreeNode leafNode = new BPlusTreeNode(order, allocator, node.getChild(index));
-                // Recur to find and delete the key from the leaf
-                delete(leafNode, key);
+                // If it's an internal node, find the appropriate child to recurse into
+                BPlusTreeNode leftChild = new BPlusTreeNode(order, allocator, node.getChild(index));
+                if (leftChild.getKeyCount() > 0 && leftChild.containsKey(key)) {
+                    // Key is in the left child, delete from it
+                    delete(leftChild, key);
+                } else {
+                    // If key is not found in left child, check the right child
+                    BPlusTreeNode rightChild = new BPlusTreeNode(order, allocator, node.getChild(index + 1));
+                    if (rightChild.getKeyCount() > 0 && rightChild.containsKey(key)) {
+                        // Key is in the right child, delete from it
+                        delete(rightChild, key);
+                    } else {
+                        // Key not found in either child, no action needed
+                        return;
+                    }
+                }
             }
         } else {
             // If not found and it's a leaf node, do nothing
@@ -234,16 +245,20 @@ public void insertMany(HashMap<Integer,Integer> items){
                 return; // Key not found
             }
 
-            // Determine the child to recurse into
-            boolean isLastChild = (index == node.getKeyCount());
-            BPlusTreeNode childNode = new BPlusTreeNode(order, allocator, node.getChild(isLastChild ? index - 1 : index));
-
+            // Move to the appropriate child based on the index
+            BPlusTreeNode childNode = new BPlusTreeNode(order, allocator, node.getChild(index));
             // Recur on the child node
             delete(childNode, key);
         }
 
-        // After the recursive call, check if we need to update the parent's key
-        updateParentKey(node, key);
+        // After deleting, check if we need to update the internal node's key
+        if (!node.isLeaf()) {
+            if (index < node.getKeyCount() && node.getKey(index) == key) {
+                // Key was found in internal node, update the key
+                int predecessor = getPredecessor(node, index);
+                node.setKey(index, predecessor);
+            }
+        }
     }
 
     private void removeFromLeaf(BPlusTreeNode node, int index) {
