@@ -95,6 +95,9 @@ class BPlusTreeNode {
     public void incrementKeyCount() {
         allocator.getBuffer().putInt(offset, getKeyCount() + 1);
     }
+    public void incrementKeyCount(int count) {
+        allocator.getBuffer().putInt(offset, getKeyCount() + count);
+    }
 
     public void decrementKeyCount() {
         allocator.getBuffer().putInt(offset, getKeyCount() - 1);
