@@ -45,7 +45,7 @@ public class BPlusTreeTest {
         tree.insertMany(items);
 
         //tree.delete(1);
-        tree.delete(2);
+        tree.delete(0);
        tree.printTree();
     }
 }
