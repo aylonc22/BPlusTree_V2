@@ -171,20 +171,18 @@ public class BPlusTree {
 
     // Print the B+ Tree
     public void printTree() {
-        printNode(root, 0, new HashSet<>());
+        printNode(root, 0);
     }
 
-    private void printNode(BPlusTreeNode node, int level, Set<Integer> printedLeaves) {
+    private void printNode(BPlusTreeNode node, int level) {
         System.out.print("Level " + level + ": ");
         for (int i = 0; i < node.getKeyCount(); i++) {
             System.out.print(node.getKey(i));
             if (node.isLeaf()) {
-                // Only print the value if the leaf hasn't been printed yet
-                if (!printedLeaves.contains(node.getOffset())) {
-                    node.printNodeContents();
+
+
                     System.out.print("(" + node.getValue(i) + ")");
-                    printedLeaves.add(node.getOffset()); // Mark this leaf as printed
-                }
+
             }
             if (i < node.getKeyCount() - 1) {
                 System.out.print(", ");
@@ -196,7 +194,7 @@ public class BPlusTree {
             for (int i = 0; i <= node.getKeyCount(); i++) {
                 int childOffset = node.getChild(i);
                 if (childOffset != -1) { // Only print valid child nodes
-                    printNode(new BPlusTreeNode(order, allocator, childOffset), level + 1, printedLeaves);
+                    printNode(new BPlusTreeNode(order, allocator, childOffset), level + 1);
                 }
             }
         }
