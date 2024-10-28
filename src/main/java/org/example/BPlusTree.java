@@ -60,39 +60,66 @@ public class BPlusTree {
 
     private void splitChild(BPlusTreeNode parent, int index) {
         BPlusTreeNode child = new BPlusTreeNode(order, allocator, parent.getChild(index));
-        BPlusTreeNode newChild = new BPlusTreeNode(order, allocator, true); // New leaf node
+        BPlusTreeNode newChild;
 
-        int midIndex = order / 2; // For order 3, midIndex will be 1
+        int midIndex = order / 2; // Midpoint for splitting
 
-        // Move the last key and value from child to newChild
-        for (int j = midIndex; j < child.getKeyCount(); j++) {
-            newChild.setKey(j - midIndex, child.getKey(j));
-            newChild.setValue(j - midIndex, child.getValue(j));
+        if (child.isLeaf()) {
+            // Splitting a leaf node
+            newChild = new BPlusTreeNode(order, allocator, true); // Create a new leaf node
+
+            // Move the last keys and values to the new child
+            for (int j = midIndex; j < child.getKeyCount(); j++) {
+                newChild.setKey(j - midIndex, child.getKey(j));
+                newChild.setValue(j - midIndex, child.getValue(j));
+            }
+
+            // Update key counts
+            newChild.incrementKeyCount(child.getKeyCount() - midIndex);
+            child.incrementKeyCount(-(child.getKeyCount() - midIndex));
+
+            // Adjust the parent node
+            parent.setKey(index, child.getKey(midIndex - 1)); // Promote middle key to parent
+            parent.setChild(index + 1, newChild.getOffset()); // Link new child
+        } else {
+            // Splitting an internal node
+            newChild = new BPlusTreeNode(order, allocator, false); // Create a new internal node
+
+            // Move the keys to the new child
+            for (int j = midIndex; j < child.getKeyCount(); j++) {
+                newChild.setKey(j - midIndex, child.getKey(j));
+            }
+
+            // Move the children pointers to the new child
+            for (int j = midIndex + 1; j <= child.getKeyCount(); j++) {
+                newChild.setChild(j - midIndex - 1, child.getChild(j));
+            }
+
+            // Update key counts
+            newChild.incrementKeyCount(child.getKeyCount() - midIndex);
+            child.incrementKeyCount(-(child.getKeyCount() - midIndex));
+
+            // Promote the middle key to the parent
+            parent.setKey(index, child.getKey(midIndex - 1)); // Promote key
+            parent.setChild(index + 1, newChild.getOffset()); // Link new child
         }
 
-        // Update the key count for the children
-        newChild.incrementKeyCount(child.getKeyCount() - midIndex);
-        child.incrementKeyCount(-(child.getKeyCount() - midIndex));
-
-        // Update parent
+        // Shift parent keys and children to make room for the new key
         for (int j = parent.getKeyCount(); j > index; j--) {
             parent.setKey(j, parent.getKey(j - 1));
             parent.setChild(j + 1, parent.getChild(j));
         }
 
-        // Promote the middle key to the parent
-        parent.setKey(index, child.getKey(midIndex - 1)); // Key to promote
-        parent.setChild(index + 1, newChild.getOffset()); // Link to the new child
-        parent.incrementKeyCount(); // Increase parent's key count
-
         // Update the parent offset in the new child
         newChild.setParentOffset(parent.getOffset());
+        parent.incrementKeyCount(); // Increase parent's key count
     }
     public Integer search(int key) {
         return search(root, key);
     }
 
     private Integer search(BPlusTreeNode node, int key) {
+       node.printNodeContents();
         int i = 0;
         while (i < node.getKeyCount() && key > node.getKey(i)) {
             i++;
@@ -111,25 +138,40 @@ public class BPlusTree {
 
     // Print the B+ Tree
     public void printTree() {
-        printNode(root, 0);
+        Set<Integer> printedLeafOffsets = new HashSet<>();
+        printNode(root, 0, printedLeafOffsets);
     }
 
-    private void printNode(BPlusTreeNode node, int level) {
-        System.out.print("Level " + level + ": ");
-        for (int i = 0; i < node.getKeyCount(); i++) {
-            System.out.print(node.getKey(i));
-            if (node.isLeaf()) {
-                System.out.print("(" + node.getValue(i) + ")");
-            }
-            if (i < node.getKeyCount() - 1) {
-                System.out.print(", ");
-            }
-        }
-        System.out.println();
-
+    private void printNode(BPlusTreeNode node, int level, Set<Integer> printedLeafOffsets) {
+        // Print internal nodes
         if (!node.isLeaf()) {
+            System.out.print("Level " + level + ": ");
+
+            for (int i = 0; i < node.getKeyCount(); i++) {
+                System.out.print(node.getKey(i));
+                if (i < node.getKeyCount() - 1) {
+                    System.out.print(", ");
+                }
+            }
+            System.out.println();
+
+            // Recursively print child nodes
             for (int i = 0; i <= node.getKeyCount(); i++) {
-                printNode(new BPlusTreeNode(order, allocator, node.getChild(i)), level + 1);
+                int childOffset = node.getChild(i);
+                printNode(new BPlusTreeNode(order, allocator, childOffset), level + 1, printedLeafOffsets);
+            }
+        } else {
+            // Print leaves only if they haven't been printed
+            if (!printedLeafOffsets.contains(node.getOffset())) {
+                System.out.print("Leaf: ");
+                for (int i = 0; i < node.getKeyCount(); i++) {
+                    System.out.print(node.getKey(i) + "(" + node.getValue(i) + ")");
+                    if (i < node.getKeyCount() - 1) {
+                        System.out.print(", ");
+                    }
+                }
+                System.out.println();
+                printedLeafOffsets.add(node.getOffset()); // Mark this leaf as printed
             }
         }
     }
@@ -153,7 +195,7 @@ public class BPlusTree {
         tree.printTree();
 
         // Search for values
-//        System.out.println("Search for key 10: " + (tree.search(10) != null ? "Found" : "Not Found"));
+//       System.out.println("Search for key 10: " + (tree.search(10) != null ? "Found" : "Not Found"));
 //        System.out.println("Search for key 20: " + (tree.search(20) != null ? "Found" : "Not Found"));
 //        System.out.println("Search for key 15: " + (tree.search(15) != null ? "Found" : "Not Found"));
 //        System.out.println("Search for key 25: " + (tree.search(25) != null ? "Found" : "Not Found"));
