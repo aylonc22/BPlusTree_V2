@@ -39,6 +39,12 @@ class BPlusTreeNode {
         ByteBuffer buffer = allocator.getBuffer();
         buffer.putInt(offset, 0); // Key count
         buffer.put(offset + INT_SIZE, (byte) (isLeaf ? 1 : 0)); // Is leaf
+        if (!isLeaf) {
+            // Initialize child pointers to -1 for internal nodes
+            for (int i = 0; i <= order; i++) { // One more child than keys
+                setChild(i, -1);
+            }
+        }
         setParentOffset(-1); // No parent initially
     }
 
@@ -47,6 +53,7 @@ class BPlusTreeNode {
     }
 
     public boolean isLeaf() {
+
         return allocator.getBuffer().get(offset + INT_SIZE) == 1;
     }
 
@@ -149,19 +156,25 @@ class BPlusTreeNode {
 
     public void printNodeContents() {
         System.out.println("Node contents at offset " + offset + ":");
+
+        // Print Key Count
         System.out.printf("Key Count: %d%n", getKeyCount());
+
+        // Print Is Leaf
         System.out.printf("Is Leaf: %b%n", isLeaf() ? "true" : "false");
+
+        int keyCount = getKeyCount();
 
         // Print Keys
         System.out.println("Keys:");
-        for (int i = 0; i < getKeyCount(); i++) {
+        for (int i = 0; i < keyCount; i++) {
             System.out.printf("Key[%d]: %d%n", i, getKey(i));
         }
 
         // Print Values if it's a leaf node
         if (isLeaf()) {
             System.out.println("Values:");
-            for (int i = 0; i < getKeyCount(); i++) {
+            for (int i = 0; i < keyCount; i++) {
                 System.out.printf("Value[%d]: %d%n", i, getValue(i));
             }
         }
@@ -169,8 +182,11 @@ class BPlusTreeNode {
         // Print Children (if it's not a leaf node)
         if (!isLeaf()) {
             System.out.println("Children:");
-            for (int i = 0; i <= getKeyCount(); i++) { // Include one extra for the children
-                System.out.printf("Child[%d]: %d%n", i, getChild(i));
+            for (int i = 0; i <= keyCount; i++) { // Include one extra for the children
+                int childOffset = getChild(i);
+                if (childOffset != -1) {
+                    System.out.printf("Child[%d]: %d%n", i, childOffset);
+                }
             }
         }
 
