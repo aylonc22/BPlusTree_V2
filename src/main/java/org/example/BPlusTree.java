@@ -53,8 +53,6 @@ public class BPlusTree {
                 // Check if the single child is full
                 if (childNode.getKeyCount() == order - 1) {
                     // Split the full child
-                    node.printNodeContents();
-                    childNode.printNodeContents();
                     splitChild(node, i,false);
                     // After splitting, we need to determine the correct child offset again
                     if (key > node.getKey(i)) {
@@ -121,13 +119,11 @@ public class BPlusTree {
             // Update key counts for both child nodes
             newChild.incrementKeyCount(child.getKeyCount() - midIndex); // Key count for new child
             child.incrementKeyCount(-(child.getKeyCount() - midIndex)); // Key count for original child
-            child.printNodeContents(); // Debug: Print original child contents
-            newChild.printNodeContents(); // Debug: Print new child contents
 
             // Adjust the parent node
             parent.setKey(index, child.getKey(midIndex - 1)); // Promote the middle key to parent
             parent.setChild(index + 1, newChild.getOffset()); // Link the new child to the parent
-            parent.printNodeContents(); // Debug: Print parent contents after modification
+
         } else {
             // Splitting an internal node
             newChild = new BPlusTreeNode(order, allocator, false); // Create a new internal node
@@ -164,7 +160,6 @@ public class BPlusTree {
             parent.setKey(j, parent.getKey(j - 1)); // Shift keys to the right
             parent.setChild(j + 1, parent.getChild(j)); // Shift child links to the right
         }
-        parent.printNodeContents(); // Debug: Print parent contents after shifts
 
         // Update the parent offset in the new child
         newChild.setParentOffset(parent.getOffset()); // Set the new child's parent offset
@@ -256,7 +251,7 @@ public class BPlusTree {
        tree.printTree();
 
         // Search for values
-//       System.out.println("Search for key 10: " + (tree.search(10) != null ? "Found" : "Not Found"));
+       System.out.println("Search for key 10: " + (tree.search(10) != null ? "Found" : "Not Found"));
 //        System.out.println("Search for key 20: " + (tree.search(20) != null ? "Found" : "Not Found"));
 //        System.out.println("Search for key 15: " + (tree.search(15) != null ? "Found" : "Not Found"));
 //        System.out.println("Search for key 25: " + (tree.search(25) != null ? "Found" : "Not Found"));
