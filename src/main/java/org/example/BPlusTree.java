@@ -18,12 +18,13 @@ public class BPlusTree {
     public void insert(int key, int value) {
         BPlusTreeNode node = root;
         if (node.getKeyCount() == order - 1) {
-            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator, false);
-            newRoot.setChild(0, root.getOffset());
-            splitChild(newRoot, 0,true);
-            root.setParentOffset(newRoot.getOffset());
-            root = newRoot;
             insertNonFull(root, key, value);
+            root.printNodeContents();
+//            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator, false);
+//            newRoot.setChild(0, root.getOffset());
+//            splitChild(newRoot, 0,true);
+//            root.setParentOffset(newRoot.getOffset());
+//            root = newRoot;
         } else {
             insertNonFull(node, key, value);
         }
@@ -38,6 +39,7 @@ public class BPlusTree {
                 node.setValue(i + 1, node.getValue(i)); // Shift values right
                 i--;
             }
+
             node.setKey(i + 1, key);
             node.setValue(i + 1, value);
             node.incrementKeyCount(); // Update key count
@@ -175,29 +177,47 @@ public class BPlusTree {
         return search(root, key);
     }
 
+    /**
+     * Searches for a key in the B+ tree starting from the given node.
+     *
+     * @param node The current node to search in.
+     * @param key The key to search for.
+     * @return The value associated with the key if found; null otherwise.
+     */
     private Integer search(BPlusTreeNode node, int key) {
         int i = 0;
+
+        // Traverse keys in the current node to find the appropriate child
         while (i < node.getKeyCount() && key > node.getKey(i)) {
             i++;
         }
-
-        if (i < node.getKeyCount() && key == node.getKey(i)) {
-            return node.isLeaf() ? node.getValue(i) : null; // Return value if it's a leaf node
-        }
-
-        // If it's a leaf node and key wasn't found
+        node.printNodeContents();
+        // If the current node is a leaf node, check for the key
         if (node.isLeaf()) {
-            return null; // Key not found
+            // If the key matches, return the corresponding value
+            if (i < node.getKeyCount() && key == node.getKey(i)) {
+                return node.getValue(i); // Return value if found in the leaf
+            }
+            return null; // Key not found in the leaf
         }
 
-        // Traverse to the child node
+        // If we're at an internal node and the key matches, go to the appropriate child
+        if (i < node.getKeyCount() && key == node.getKey(i)) {
+            int childOffset = node.getChild(i);
+            if (childOffset != -1) { // Only proceed if the child exists
+                BPlusTreeNode childNode = new BPlusTreeNode(order, allocator, childOffset);
+                return search(childNode, key); // Recursively search in the child
+            }
+        }
+
+        // Traverse to the appropriate child node
         int childOffset = node.getChild(i);
         if (childOffset != -1) { // Only proceed if the child exists
             BPlusTreeNode childNode = new BPlusTreeNode(order, allocator, childOffset);
             return search(childNode, key); // Recursively search in the child
         }
 
-        return null; // Key not found
+        return null; // Key not found if child does not exist
     }
 
     // Print the B+ Tree
@@ -206,7 +226,7 @@ public class BPlusTree {
     }
 
     private void printNode(BPlusTreeNode node, int level) {
-        System.out.print("Level " + level + ": ");
+        System.out.print( "Offset "+node.getOffset()+" Level " + level + ": ");
         for (int i = 0; i < node.getKeyCount(); i++) {
             System.out.print(node.getKey(i));
             if (node.isLeaf()) {
@@ -241,20 +261,20 @@ public class BPlusTree {
         tree.insert(10, 100);
         tree.insert(20, 200);
         tree.insert(5, 50);
-        tree.insert(15, 150);
-        tree.insert(30, 300);
-        tree.insert(25, 250); // Adding more to trigger splits
-       tree.insert(35, 300);
-        tree.insert(37, 300);
+        //tree.insert(15, 150);
+       // tree.insert(30, 300);
+        //tree.insert(25, 250); // Adding more to trigger splits
+       //tree.insert(35, 300);
+        //tree.insert(37, 300);
         // Print the tree structure
         System.out.println("B+ Tree structure:");
        tree.printTree();
 
         // Search for values
-       System.out.println("Search for key 10: " + (tree.search(10) != null ? "Found" : "Not Found"));
-//        System.out.println("Search for key 20: " + (tree.search(20) != null ? "Found" : "Not Found"));
-//        System.out.println("Search for key 15: " + (tree.search(15) != null ? "Found" : "Not Found"));
-//        System.out.println("Search for key 25: " + (tree.search(25) != null ? "Found" : "Not Found"));
-//        System.out.println("Search for key 40: " + (tree.search(40) != null ? "Found" : "Not Found"));
+      // System.out.println("Search for key 10: " + (tree.search(10) != null ? "Found" : "Not Found"));
+        //System.out.println("Search for key 20: " + (tree.search(20) != null ? "Found" : "Not Found"));
+        //System.out.println("Search for key 15: " + (tree.search(15) != null ? "Found" : "Not Found"));
+        //System.out.println("Search for key 25: " + (tree.search(25) != null ? "Found" : "Not Found"));
+        //System.out.println("Search for key 40: " + (tree.search(40) != null ? "Found" : "Not Found"));
     }
 }

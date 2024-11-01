@@ -27,8 +27,8 @@ class BPlusTreeNode {
 
     private int nodeSize(boolean isLeaf) {
         if (isLeaf) {
-            // Leaf node: Key Count + Is Leaf + (order - 1) Keys + (order - 1) Values + Parent Offset
-            return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * (order - 1) + INT_SIZE * (order - 1) + INT_SIZE;
+            // Leaf node: Key Count + Is Leaf + order * Keys + order * Values + Parent Offset
+            return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * order  + INT_SIZE * order  + INT_SIZE;
         } else {
             // Internal node: Key Count + Is Leaf + order Keys + (order + 1) Children + Parent Offset
             return INT_SIZE + BOOLEAN_SIZE + INT_SIZE * order + INT_SIZE * (order + 1) + INT_SIZE;
@@ -58,12 +58,12 @@ class BPlusTreeNode {
     }
 
     public int getKey(int index) {
-        int start = offset + INT_SIZE + BOOLEAN_SIZE + INT_SIZE * index;
+        int start = offset + INT_SIZE + BOOLEAN_SIZE + (INT_SIZE * index);
         return allocator.getBuffer().getInt(start);
     }
 
     public void setKey(int index, int key) {
-        int start = offset + INT_SIZE + BOOLEAN_SIZE + INT_SIZE * index;
+        int start = offset + INT_SIZE + BOOLEAN_SIZE + (INT_SIZE * index);
         allocator.getBuffer().putInt(start, key);
     }
 
@@ -82,7 +82,7 @@ class BPlusTreeNode {
         if (!isLeaf()) {
             throw new UnsupportedOperationException("Values can only be retrieved from leaf nodes.");
         }
-        int valueStart = offset + INT_SIZE * order + BOOLEAN_SIZE + INT_SIZE * index;
+        int valueStart = offset+INT_SIZE + (INT_SIZE * order) + BOOLEAN_SIZE + (INT_SIZE * index);
         return allocator.getBuffer().getInt(valueStart);
     }
 
@@ -90,7 +90,7 @@ class BPlusTreeNode {
         if (!isLeaf()) {
             throw new UnsupportedOperationException("Values can only be set for leaf nodes.");
         }
-        int valueStart = offset + INT_SIZE * order + BOOLEAN_SIZE + INT_SIZE * index;
+        int valueStart = offset+INT_SIZE + INT_SIZE * order + BOOLEAN_SIZE + INT_SIZE * index;
         allocator.getBuffer().putInt(valueStart, value);
     }
 
