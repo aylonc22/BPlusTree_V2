@@ -19,12 +19,11 @@ public class BPlusTree {
         BPlusTreeNode node = root;
         if (node.getKeyCount() == order - 1) {
             insertNonFull(root, key, value);
-            root.printNodeContents();
-//            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator, false);
-//            newRoot.setChild(0, root.getOffset());
-//            splitChild(newRoot, 0,true);
-//            root.setParentOffset(newRoot.getOffset());
-//            root = newRoot;
+            BPlusTreeNode newRoot = new BPlusTreeNode(order, allocator, false);
+            newRoot.setChild(0, root.getOffset());
+            splitChild(newRoot, 0,true);
+            root.setParentOffset(newRoot.getOffset());
+            root = newRoot;
         } else {
             insertNonFull(node, key, value);
         }
@@ -107,7 +106,7 @@ public class BPlusTree {
 
         // Determine the midpoint index for splitting
         int midIndex = order / 2; // Midpoint for splitting
-
+        int midIndexKey = child.getKey(midIndex);
         if (child.isLeaf()) {
             // Splitting a leaf node
             newChild = new BPlusTreeNode(order, allocator, true); // Create a new leaf node
@@ -123,7 +122,7 @@ public class BPlusTree {
             child.incrementKeyCount(-(child.getKeyCount() - midIndex)); // Key count for original child
 
             // Adjust the parent node
-            parent.setKey(index, child.getKey(midIndex - 1)); // Promote the middle key to parent
+            parent.setKey(index, midIndexKey); // Promote the middle key to parent
             parent.setChild(index + 1, newChild.getOffset()); // Link the new child to the parent
 
         } else {
@@ -153,7 +152,7 @@ public class BPlusTree {
             }
 
             // Promote the middle key from the original child to the parent
-            parent.setKey(index, child.getKey(midIndex - 1)); // Promote key
+            parent.setKey(index, midIndexKey); // Promote key
             parent.setChild(index + 1, newChild.getOffset()); // Link the new child to the parent
         }
 
