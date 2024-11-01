@@ -42,51 +42,28 @@ public class BPlusTree {
             node.setKey(i + 1, key);
             node.setValue(i + 1, value);
             node.incrementKeyCount(); // Update key count
+
+            // Check if the leaf node is now full and needs to be split
+            if (node.getKeyCount() == order && node != root) {
+                printTree();
+                splitChild(new BPlusTreeNode(3,allocator,node.getParentOffset()), node.getParentIndex(), true);
+            }
         } else {
             // It's an internal node
             int i = node.getKeyCount() - 1;
-
-            // If the last child is the only child and is not full
-            if (node.getChild(i + 1) == -1) {
-                int childOffset = node.getChild(i);
-                BPlusTreeNode childNode = new BPlusTreeNode(order, allocator, childOffset);
-
-                // Check if the single child is full
-                if (childNode.getKeyCount() == order - 1) {
-                    // Split the full child
-                    splitChild(node, i,false);
-                    // After splitting, we need to determine the correct child offset again
-                    if (key > node.getKey(i)) {
-                        childOffset = node.getChild(i + 1); // Go to the right child
-                    } else {
-                        childOffset = node.getChild(i); // Stay on the left child
-                    }
-                }
-                // Insert into the (possibly split) child
-                insertNonFull(new BPlusTreeNode(order, allocator, childOffset), key, value);
-                return; // Exit after handling insertion
-            }
-
-            // If there are multiple keys, find the correct child
             while (i >= 0 && key < node.getKey(i)) {
                 i--;
             }
             i++; // Move to the child that should be traversed
 
-            // Check if the child needs to be split
             int childOffset = node.getChild(i);
             BPlusTreeNode child = new BPlusTreeNode(order, allocator, childOffset);
-            if (child.getKeyCount() == order - 1) {
-                // Child is full, split it
-                splitChild(node, i,true);
-                // After splitting, check which child to go to
-                if (key > node.getKey(i)) {
-                    childOffset = node.getChild(i + 1); // Go to the right child
-                }
-            }
+            insertNonFull(child, key, value); // Recur to insert in the appropriate child
 
-            // Recur to the appropriate child
-            insertNonFull(new BPlusTreeNode(order, allocator, childOffset), key, value);
+            // After inserting into the child, check if it needs to be split
+            if (child.getKeyCount() == order && node != root) {
+                splitChild(child, i, false);
+            }
         }
     }
     /**
@@ -260,7 +237,7 @@ public class BPlusTree {
         tree.insert(10, 100);
         tree.insert(20, 200);
         tree.insert(5, 50);
-        //tree.insert(15, 150);
+        tree.insert(15, 150);
        // tree.insert(30, 300);
         //tree.insert(25, 250); // Adding more to trigger splits
        //tree.insert(35, 300);
